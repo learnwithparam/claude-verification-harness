@@ -161,6 +161,20 @@ describe("try", () => {
     rmSync(join(repo, "bin"), { recursive: true, force: true });
     expect(r.out.trim()).toBe("--setting-sources project,local --model haiku --permission-mode acceptEdits /ticket 03");
   });
+
+  test.skipIf(!Bun.which("tmux"))("tmux opens three tickets and the verdict pane, even with pane-base-index 1", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "harness-tmux-"));
+    const env = `TMUX= TMUX_TMPDIR="${tmp}" PATH="$PWD/bin:$PATH"`;
+    sh(`mkdir -p bin && printf '#!/bin/sh\\nsleep 30\\n' > bin/claude && chmod +x bin/claude`);
+    sh(`${env} tmux -f /dev/null new-session -d -s seed \\; set -g base-index 1 \\; set -g pane-base-index 1`);
+    sh(`${env} bash harness/tmux.sh </dev/null`);
+    const panes = sh(`${env} tmux list-panes -t harness -F '#{pane_start_command}'`).out;
+    sh(`${env} tmux kill-server; git worktree remove --force .worktrees/ticket-01; git worktree remove --force .worktrees/ticket-02; git worktree remove --force .worktrees/ticket-03`);
+    rmSync(join(repo, "bin"), { recursive: true, force: true });
+    rmSync(tmp, { recursive: true, force: true });
+    for (const n of ["01", "02", "03"]) expect(panes).toContain(`try.sh ${n}`);
+    expect(panes).toContain("VERDICTS");
+  });
 });
 
 describe("after-edit hook", () => {

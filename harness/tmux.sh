@@ -9,10 +9,10 @@ log="$(git rev-parse --path-format=absolute --git-common-dir)/harness-verdicts.l
 touch "$log"
 # A running tmux server keeps its own environment, so the settings travel with each command.
 run="env MODEL='${MODEL:-sonnet}' CLAUDE_FLAGS='${CLAUDE_FLAGS:-}' bash harness/try.sh"
-tmux new-session -d -s "$session" -n run "$run 01"
-tmux split-window -t "$session" -h "$run 02"
-tmux split-window -t "$session" -v "$run 03"
-tmux select-pane -t "$session:run.0"
-tmux split-window -t "$session" -v -l 10 "echo 'VERDICTS'; tail -n 20 -f '$log'"
-tmux select-pane -t "$session:run.0"
+# Pane ids, not indexes, so a tmux.conf with pane-base-index 1 works too.
+first=$(tmux new-session -d -P -F '#{pane_id}' -s "$session" -x 200 -y 50 "$run 01")
+right=$(tmux split-window -P -F '#{pane_id}' -t "$first" -h "$run 02")
+tmux split-window -t "$right" -v "$run 03"
+tmux split-window -t "$first" -v -l 10 "echo 'VERDICTS'; tail -n 20 -f '$log'"
+tmux select-pane -t "$first"
 exec tmux attach -t "$session"
