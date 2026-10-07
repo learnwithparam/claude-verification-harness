@@ -30,7 +30,8 @@ if (tool === "Bash") {
   if (gitCalls.some((sub) => !GIT_ALLOWED.has(sub)) || showsPatches) {
     deny("That git command can reach files outside your working tree. Use git status and git diff.");
   }
-  if (/(^|\s)tests\//.test(cmd) && /(>|\bsed\s+-i|\bperl\s+-i|\brm\b|\bmv\b|\bcp\b|\btee\b)/.test(cmd)) {
+  // Any language can write a file, so a command that names tests/ and can write is refused.
+  if (/(^|[^\w-])tests\//.test(cmd) && /(>|\b(sed|perl)\s+-i|\b(rm|mv|cp|tee|dd|ln|truncate)\b|\bopen\(|\bwrite|\bunlink)/i.test(cmd.replace(/\d*>&\d/g, ""))) {
     deny("Only src/ is yours to change. The tests are how your work is checked.");
   }
 }

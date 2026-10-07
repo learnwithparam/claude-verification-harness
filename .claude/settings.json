@@ -4,8 +4,7 @@
     "allow": [
       "Bash(bun test)",
       "Bash(bun test *)",
-      "Edit(./src/**)",
-      "Write(./src/**)"
+      "Edit(./src/**)"
     ],
     "deny": [
       "Read(./holdout/**)",
