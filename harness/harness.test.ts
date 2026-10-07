@@ -37,7 +37,8 @@ describe("verify", () => {
     const r = verify();
     restoreSrc();
     expect(r.code).toBe(1);
-    expect(r.out).toContain("GATE FAILED: cents stay whole numbers");
+    // The exact line the lesson slide shows.
+    expect(r.out).toContain("GATE FAILED: cents stay whole numbers\n");
   });
 
   test("an unfinished ticket is RED and names the failing holdout test", () => {

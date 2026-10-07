@@ -15,7 +15,7 @@ gate() {
   fi
 }
 
-gate "cents stay whole numbers (no toFixed or parseFloat in src)" '! grep -nE "toFixed|parseFloat" src/*.ts'
+gate "cents stay whole numbers"                                '! grep -nE "toFixed|parseFloat" src/*.ts'
 gate "no focused or skipped tests"                              '! grep -nE "\.(only|skip)\(" tests/*.ts'
 gate "visible tests pass"                                       'out=$(bun test tests 2>&1) || { echo "$out" | grep -E "^\(fail\)"; exit 1; }'
 if [ -n "$(ticket)" ]; then
