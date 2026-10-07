@@ -154,6 +154,15 @@ describe("guard hook", () => {
   });
 });
 
+describe("try", () => {
+  test("opens Claude on the ticket with CLAUDE_FLAGS and MODEL passed through", () => {
+    sh(`mkdir -p bin && printf '#!/bin/sh\\necho "$@"\\n' > bin/claude && chmod +x bin/claude`);
+    const r = sh(`PATH="$PWD/bin:$PATH" MODEL=haiku CLAUDE_FLAGS="--setting-sources project,local" bash harness/try.sh 03`);
+    rmSync(join(repo, "bin"), { recursive: true, force: true });
+    expect(r.out.trim()).toBe("--setting-sources project,local --model haiku --permission-mode acceptEdits /ticket 03");
+  });
+});
+
 describe("after-edit hook", () => {
   const afterEdit = (file: string) => sh("bun .claude/hooks/after-edit.ts", repo, JSON.stringify({ tool_input: { file_path: file } }));
 
