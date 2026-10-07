@@ -1,0 +1,168 @@
+// The harness's own test: every claim the README and the lesson make about it, run against a fresh clone.
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const ROOT = join(import.meta.dir, "..");
+let repo = "";
+
+function sh(cmd: string, cwd = repo, stdin = "") {
+  const r = Bun.spawnSync(["bash", "-c", cmd], { cwd, stdin: new TextEncoder().encode(stdin), env: { ...process.env, CLAUDE_PROJECT_DIR: cwd } });
+  return { code: r.exitCode, out: r.stdout.toString(), err: r.stderr.toString() };
+}
+const verify = () => sh("bash harness/verify.sh");
+const useSolution = (n: string) => copyFileSync(join(ROOT, `harness/fixtures/solution-${n}.ts`), join(repo, "src/cart.ts"));
+const restoreSrc = () => sh("git checkout -q -- src");
+const startTicket = (n: string) => sh(`bash harness/start-ticket.sh ${n}`);
+const guard = (tool: string, input: object) => sh("bun .claude/hooks/guard.ts", repo, JSON.stringify({ tool_name: tool, tool_input: input }));
+const denied = (r: { out: string }) => r.out.includes('"permissionDecision":"deny"');
+
+beforeAll(() => {
+  const dir = mkdtempSync(join(tmpdir(), "harness-test-"));
+  repo = join(dir, "repo");
+  // The working tree, not the last commit, so the test checks the harness as it is now.
+  sh(`mkdir -p "${repo}" && git ls-files -co --exclude-standard | grep -v '^harness/fixtures/' | tar -cf - -T - | tar -xf - -C "${repo}"`, ROOT);
+  sh("git init -q -b main && git add -A && git -c user.name=t -c user.email=t@t commit -qm base");
+});
+afterAll(() => rmSync(join(repo, ".."), { recursive: true, force: true }));
+
+describe("verify", () => {
+  test("main with no ticket is GREEN", () => {
+    expect(verify().code).toBe(0);
+  });
+
+  test("a float in the code turns a gate RED, with the gate named", () => {
+    writeFileSync(join(repo, "src/cart.ts"), readFileSync(join(repo, "src/cart.ts"), "utf8") + "\nexport const price = (c: number) => (c / 100).toFixed(2);\n");
+    const r = verify();
+    restoreSrc();
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("GATE FAILED: cents stay whole numbers");
+  });
+
+  test("an unfinished ticket is RED and names the failing holdout test", () => {
+    startTicket("01");
+    const r = verify();
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("HOLDOUT FAILED: SAVE10 takes 10% off the items");
+  });
+
+  test("the holdout report never prints the holdout source", () => {
+    startTicket("01");
+    const r = verify();
+    expect(r.out).not.toContain("expect(");
+    expect(r.out).not.toContain("applyCode(items(");
+  });
+
+  for (const n of ["01", "02", "03"]) {
+    test(`the reference solution for ticket ${n} is GREEN`, () => {
+      startTicket(n);
+      useSolution(n);
+      const r = verify();
+      restoreSrc();
+      expect(r.out).toContain("VERIFY: GREEN");
+    });
+  }
+
+  test("editing a visible test on a ticket turns the tamper gate RED", () => {
+    startTicket("01");
+    useSolution("01");
+    writeFileSync(join(repo, "tests/cart.test.ts"), readFileSync(join(repo, "tests/cart.test.ts"), "utf8").replace("4499", "4498").replace("4499", "4498"));
+    const r = verify();
+    sh("git checkout -q -- tests");
+    restoreSrc();
+    expect(r.out).toContain("GATE FAILED: tests, holdout and harness unchanged");
+  });
+});
+
+describe("stop hook", () => {
+  const stop = () => sh("bun .claude/hooks/stop.ts", repo, "{}");
+
+  test("RED blocks the stop with the reason, and the third RED hands over to a human", () => {
+    startTicket("01");
+    const first = stop();
+    expect(first.code).toBe(2);
+    expect(first.err).toContain("attempt 1 of 3");
+    expect(first.err).toContain("HOLDOUT FAILED");
+    expect(stop().code).toBe(2);
+    const third = stop();
+    expect(third.code).toBe(0);
+    expect(third.out).toContain("NEEDS HUMAN");
+  });
+
+  test("GREEN lets Claude stop and resets the count", () => {
+    startTicket("01");
+    stop();
+    useSolution("01");
+    const r = stop();
+    restoreSrc();
+    expect(r.code).toBe(0);
+    expect(readFileSync(join(repo, ".claude/state/rejects"), "utf8").trim()).toBe("0");
+  });
+
+  test("on a ticket branch, deleting the state file does not switch the reviewer off", () => {
+    sh("git checkout -q -b ticket-01");
+    rmSync(join(repo, ".claude/state"), { recursive: true, force: true });
+    const r = stop();
+    sh("git checkout -q main");
+    expect(r.code).toBe(2);
+  });
+
+  test("with no ticket in progress it never blocks", () => {
+    rmSync(join(repo, ".claude/state/ticket"), { force: true });
+    expect(stop().code).toBe(0);
+  });
+});
+
+describe("guard hook", () => {
+  test.each([
+    ["Read", { file_path: "holdout/01-discount-code.holdout.test.ts" }],
+    ["Grep", { pattern: "SAVE10", path: "holdout" }],
+    ["Glob", { pattern: "holdout/**" }],
+    ["Bash", { command: "cat holdout/01-discount-code.holdout.test.ts" }],
+    ["Bash", { command: "git show main:holdout/01-discount-code.holdout.test.ts" }],
+    ["Bash", { command: "git grep SAVE10 main" }],
+    ["Bash", { command: "git -C . show main:tests/cart.test.ts" }],
+    ["Bash", { command: "git log -p" }],
+    ["Bash", { command: "cd .claude && rm state/ticket" }],
+    ["Bash", { command: "rm -rf .claude" }],
+    ["Bash", { command: "cd harness; echo 'exit 0' > verify.sh" }],
+    ["Bash", { command: "bash harness/verify.sh" }],
+    ["Bash", { command: "make verify" }],
+    ["Bash", { command: "bun test tests && make verify" }],
+    ["Bash", { command: "sed -i '' 's/4499/1/' tests/cart.test.ts" }],
+    ["Edit", { file_path: `${"/x"}/tests/cart.test.ts` }],
+    ["Write", { file_path: "harness/gates.sh" }],
+    ["Edit", { file_path: ".claude/settings.json" }],
+  ])("denies %s %j", (tool, input) => {
+    expect(denied(guard(tool, input))).toBe(true);
+  });
+
+  test.each([
+    ["Edit", { file_path: "src/cart.ts" }],
+    ["Read", { file_path: "tests/cart.test.ts" }],
+    ["Bash", { command: "bun test tests" }],
+    ["Bash", { command: "git diff" }],
+    ["Bash", { command: "git status && git log --oneline -5" }],
+    ["Bash", { command: "python3 -c \"print('make the discount whole cents')\"" }],
+    ["Bash", { command: "cd /work/claude-verification-harness && bun test tests" }],
+  ])("allows %s %j", (tool, input) => {
+    expect(denied(guard(tool, input))).toBe(false);
+  });
+});
+
+describe("after-edit hook", () => {
+  const afterEdit = (file: string) => sh("bun .claude/hooks/after-edit.ts", repo, JSON.stringify({ tool_input: { file_path: file } }));
+
+  test("a failing gate after a src edit goes back to Claude as additionalContext", () => {
+    writeFileSync(join(repo, "src/cart.ts"), readFileSync(join(repo, "src/cart.ts"), "utf8") + "\nexport const n = parseFloat('1.5');\n");
+    const r = afterEdit("src/cart.ts");
+    restoreSrc();
+    expect(JSON.parse(r.out).hookSpecificOutput.additionalContext).toContain("cents stay whole numbers");
+  });
+
+  test("a clean edit, or one outside src, says nothing", () => {
+    expect(afterEdit("src/cart.ts").out).toBe("");
+    expect(afterEdit("README.md").out).toBe("");
+  });
+});

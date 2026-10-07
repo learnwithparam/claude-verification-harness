@@ -1,0 +1,6 @@
+{
+  "name": "claude-verification-harness",
+  "private": true,
+  "type": "module",
+  "devDependencies": {}
+}
