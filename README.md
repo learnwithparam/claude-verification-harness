@@ -4,8 +4,9 @@ Claude says "done, tests pass". This repo checks that claim before you ever see 
 a Stop hook runs gates and acceptance tests Claude cannot read or change. A RED sends the reason back,
 and Claude fixes its own work. After three REDs the ticket goes to a human.
 
-It is plain Claude Code: `CLAUDE.md`, `.claude/settings.json`, three hooks and one skill, on a tiny
-checkout cart in Bun and TypeScript. Free to clone and try.
+It is plain Claude Code, on a tiny checkout cart in Bun and TypeScript: `CLAUDE.md`, one path-scoped
+rule, permission rules, three hooks, one skill, one reviewer subagent, and a harness of gates and
+holdout tests. Free to clone and try.
 
 ## Before you start
 
@@ -26,17 +27,19 @@ five rehearsal runs did.
 
 | Piece | What it does |
 | --- | --- |
-| `CLAUDE.md` | Guidance: how to run things. Claude may ignore it. |
-| `.claude/settings.json` | Enforced: permission rules and the three hooks. |
+| `CLAUDE.md` | Guidance loaded every session: how to run things. Claude may ignore it. |
+| `.claude/rules/money.md` | Guidance loaded only when Claude opens a file in `src/`: amounts stay whole cents. |
+| `.claude/settings.json` | Enforced: permission rules and the three hooks. A `Read` deny covers the Read tool only. |
 | `.claude/hooks/guard.ts` | PreToolUse. Denies reading the holdout, editing tests or the harness, and git commands that read other commits. A `Read` deny rule alone does not stop `cat` in Bash. |
 | `.claude/hooks/after-edit.ts` | PostToolUse. Runs the gates after each edit to `src/` and hands failures back as context. |
 | `.claude/hooks/stop.ts` | Stop. Runs `harness/verify.sh`. RED exits 2 with the reason; the third RED hands over to a human. |
 | `.claude/skills/ticket` | `/ticket 01` starts a ticket. Only you can run it. |
+| `.claude/agents/reviewer.md` | A read-only subagent: after GREEN it reads the ticket and the diff for what no test checks. |
 | `harness/gates.sh` | One line per gate: whole cents, no `.only`, visible tests, nothing tampered with. |
 | `holdout/` | The product owner's acceptance tests. Claude is graded on them and never shown them. |
 | `tickets/` | Three small tickets, written as loosely as real ones. |
 
-## I do: watch it say no
+## Watch it say no
 
 ```bash
 make verify            # GREEN on main
@@ -46,12 +49,12 @@ make try T=01          # Claude on ticket 01, in its own worktree with no holdou
 Claude implements the ticket, the visible tests pass, and it says done. The Stop hook answers with the
 name of an acceptance test it failed, and Claude goes back to work without you typing anything.
 
-## We do: add a gate
+## Add a gate
 
 Pick a rule your team keeps repeating in review. Add one `gate` line to `harness/gates.sh`, then
 `make verify`. Every Claude run from now on meets it.
 
-## You do: run it
+## Run it yourself
 
 ```bash
 make try T=02          # or T=03

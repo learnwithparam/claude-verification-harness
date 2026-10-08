@@ -148,6 +148,7 @@ describe("guard hook", () => {
     ["Bash", { command: "bun test tests/cart.test.ts 2>&1 | tail -15" }],
     ["Bash", { command: "git diff" }],
     ["Bash", { command: "git status && git log --oneline -5" }],
+    ["Bash", { command: "git diff main" }],
     ["Bash", { command: "python3 -c \"print('make the discount whole cents')\"" }],
     ["Bash", { command: "cd /work/claude-verification-harness && bun test tests" }],
   ])("allows %s %j", (tool, input) => {
@@ -191,5 +192,35 @@ describe("after-edit hook", () => {
   test("a clean edit, or one outside src, says nothing", () => {
     expect(afterEdit("src/cart.ts").out).toBe("");
     expect(afterEdit("README.md").out).toBe("");
+  });
+});
+
+describe("guidance and the reviewer", () => {
+  const frontmatter = (path: string) => readFileSync(join(ROOT, path), "utf8").split("---")[1];
+
+  test("the money rule loads only for files in src/", () => {
+    const fm = frontmatter(".claude/rules/money.md");
+    expect(fm).toMatch(/paths:\s*\n\s*- "src\/\*\*\/\*\.ts"/);
+  });
+
+  test("the money rule names exactly what the cents gate refuses", () => {
+    const rule = readFileSync(join(ROOT, ".claude/rules/money.md"), "utf8");
+    const gate = readFileSync(join(ROOT, "harness/gates.sh"), "utf8").match(/cents stay whole numbers"\s+'! grep -nE "([^"]+)"/)![1];
+    for (const word of gate.split("|")) expect(rule).toContain(`\`${word}\``);
+  });
+
+  test("the reviewer subagent has no tool that edits", () => {
+    const tools = frontmatter(".claude/agents/reviewer.md").match(/^tools:(.*)$/m)![1].split(",").map((t) => t.trim());
+    expect(tools.filter((t) => /^(Edit|Write|MultiEdit|NotebookEdit)$/.test(t))).toEqual([]);
+  });
+
+  test("editing the rule or the reviewer on a ticket turns the tamper gate RED", () => {
+    startTicket("01");
+    useSolution("01");
+    writeFileSync(join(repo, ".claude/rules/money.md"), "anything goes\n");
+    const r = verify();
+    sh("git checkout -q -- .claude/rules");
+    restoreSrc();
+    expect(r.out).toContain("GATE FAILED: tests, holdout and harness unchanged");
   });
 });

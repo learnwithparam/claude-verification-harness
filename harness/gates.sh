@@ -19,7 +19,7 @@ gate "cents stay whole numbers"                                '! grep -nE "toFi
 gate "no focused or skipped tests"                              '! grep -nE "\.(only|skip)\(" tests/*.ts'
 gate "visible tests pass"                                       'out=$(bun test tests 2>&1) || { echo "$out" | grep -E "^\(fail\)"; exit 1; }'
 if [ -n "$(ticket)" ]; then
-  gate "tests, holdout and harness unchanged by this ticket"    "git diff --stat $(base_commit) -- tests holdout harness .claude/hooks .claude/settings.json .claude/skills | grep . && exit 1 || exit 0"
+  gate "tests, holdout and harness unchanged by this ticket"    "git diff --stat $(base_commit) -- tests holdout harness .claude/hooks .claude/settings.json .claude/skills .claude/rules .claude/agents | grep . && exit 1 || exit 0"
 fi
 
 exit $failed
