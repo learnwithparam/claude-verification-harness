@@ -12,5 +12,6 @@ if [ ! -d "$wt" ]; then
 fi
 [ "${NO_CLAUDE:-}" = 1 ] && { echo "$wt"; exit 0; }
 cd "$wt"
+# dontAsk: anything settings.json does not allow is refused, and nobody is asked, so the run is unattended.
 # CLAUDE_FLAGS adds flags, e.g. "--setting-sources project,local" to leave your personal hooks out.
-exec claude ${CLAUDE_FLAGS:-} --model "${MODEL:-sonnet}" --permission-mode acceptEdits "/ticket $n"
+exec claude ${CLAUDE_FLAGS:-} --model "${MODEL:-sonnet}" --permission-mode dontAsk "/ticket $n"

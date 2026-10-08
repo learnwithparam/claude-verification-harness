@@ -4,6 +4,9 @@
     "allow": [
       "Bash(bun test)",
       "Bash(bun test *)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
       "Edit(./src/**)"
     ],
     "deny": [

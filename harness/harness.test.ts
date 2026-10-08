@@ -166,7 +166,7 @@ describe("try", () => {
     sh(`mkdir -p bin && printf '#!/bin/sh\\necho "$@"\\n' > bin/claude && chmod +x bin/claude`);
     const r = sh(`PATH="$PWD/bin:$PATH" MODEL=haiku CLAUDE_FLAGS="--setting-sources project,local" bash harness/try.sh 03`);
     rmSync(join(repo, "bin"), { recursive: true, force: true });
-    expect(r.out.trim()).toBe("--setting-sources project,local --model haiku --permission-mode acceptEdits /ticket 03");
+    expect(r.out.trim()).toBe("--setting-sources project,local --model haiku --permission-mode dontAsk /ticket 03");
   });
 
   test.skipIf(!Bun.which("tmux"))("tmux opens three tickets and the verdict pane, even with pane-base-index 1", () => {
