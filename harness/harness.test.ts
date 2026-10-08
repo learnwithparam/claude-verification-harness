@@ -135,6 +135,9 @@ describe("guard hook", () => {
     ["Bash", { command: "python3 - <<'EOF'\nopen('tests/cart.test.ts','w').write(t)\nEOF" }],
     ["Bash", { command: "bun -e \"await Bun.write('tests/cart.test.ts', '')\"" }],
     ["Edit", { file_path: `${"/x"}/tests/cart.test.ts` }],
+    ["Bash", { command: "python3 - <<'PY'\np='src/cart.ts'\nopen(p,'w').write(s)\nPY" }],
+    ["Bash", { command: "sed -i '' 's/toFixed/x/' src/cart.ts" }],
+    ["Bash", { command: "cat > src/cart.ts <<'EOF'\nexport {}\nEOF" }],
     ["Write", { file_path: "harness/gates.sh" }],
     ["Edit", { file_path: ".claude/settings.json" }],
   ])("denies %s %j", (tool, input) => {
@@ -149,6 +152,8 @@ describe("guard hook", () => {
     ["Bash", { command: "git diff" }],
     ["Bash", { command: "git status && git log --oneline -5" }],
     ["Bash", { command: "git diff main" }],
+    ["Bash", { command: "cat src/cart.ts" }],
+    ["Bash", { command: "grep -n subtotal src/cart.ts" }],
     ["Bash", { command: "python3 -c \"print('make the discount whole cents')\"" }],
     ["Bash", { command: "cd /work/claude-verification-harness && bun test tests" }],
   ])("allows %s %j", (tool, input) => {

@@ -1,4 +1,5 @@
-// PreToolUse: Claude may not read the holdout tests, nor change the tests, the harness or these hooks.
+// PreToolUse: Claude may not read the holdout tests, nor change the tests, the harness or these hooks,
+// and it changes src/ only with the edit tools, so the after-edit gates see every change.
 // A permission rule only covers the tool it names (Read), so this also catches cat, grep and git in Bash.
 const { tool_name: tool, tool_input: input = {} } = await Bun.stdin.json();
 
@@ -30,8 +31,13 @@ if (tool === "Bash") {
   if (gitCalls.some((sub) => !GIT_ALLOWED.has(sub)) || showsPatches) {
     deny("That git command can reach files outside your working tree. Use git status and git diff.");
   }
-  // Any language can write a file, so a command that names tests/ and can write is refused.
-  if (/(^|[^\w-])tests\//.test(cmd) && /(>|\b(sed|perl)\s+-i|\b(rm|mv|cp|tee|dd|ln|truncate)\b|\bopen\(|\bwrite|\bunlink)/i.test(cmd.replace(/\d*>&\d/g, ""))) {
+  // Any language can write a file, so a command that names tests/ or src/ and can write is refused.
+  const writes = /(>|\b(sed|perl)\s+-i|\b(rm|mv|cp|tee|dd|ln|truncate)\b|\bopen\(|\bwrite|\bunlink)/i.test(cmd.replace(/\d*>&\d/g, ""));
+  if (writes && /(^|[^\w-])tests\//.test(cmd)) {
     deny("Only src/ is yours to change. The tests are how your work is checked.");
+  }
+  // A script that rewrites src/ skips the after-edit hook, so its gates would never see the change.
+  if (writes && /(^|[^\w-])src\//.test(cmd)) {
+    deny("Change src/ with the Edit tool, so the gates run after every edit.");
   }
 }

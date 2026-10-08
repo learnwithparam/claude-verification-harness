@@ -30,7 +30,7 @@ five rehearsal runs did.
 | `CLAUDE.md` | Guidance loaded every session: how to run things. Claude may ignore it. |
 | `.claude/rules/money.md` | Guidance loaded only when Claude opens a file in `src/`: amounts stay whole cents. |
 | `.claude/settings.json` | Enforced: permission rules and the three hooks. A `Read` deny covers the Read tool only. |
-| `.claude/hooks/guard.ts` | PreToolUse. Denies reading the holdout, editing tests or the harness, and git commands that read other commits. A `Read` deny rule alone does not stop `cat` in Bash. |
+| `.claude/hooks/guard.ts` | PreToolUse. Denies reading the holdout, editing tests or the harness, rewriting `src/` with a script (the after-edit gates would miss it), and git commands that read other commits. A `Read` deny rule alone does not stop `cat` in Bash. |
 | `.claude/hooks/after-edit.ts` | PostToolUse. Runs the gates after each edit to `src/` and hands failures back as context. |
 | `.claude/hooks/stop.ts` | Stop. Runs `harness/verify.sh`. RED exits 2 with the reason; the third RED hands over to a human. |
 | `.claude/skills/ticket` | `/ticket 01` starts a ticket. Only you can run it. |
