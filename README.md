@@ -15,12 +15,12 @@ You need `git`, [`bun`](https://bun.sh) and [Claude Code](https://code.claude.co
 ```bash
 git clone https://github.com/learnwithparam/claude-verification-harness
 cd claude-verification-harness
-make doctor
+bash harness/doctor.sh
 ```
 
 Opening Claude Code in this folder runs the hooks in `.claude/hooks/` on your machine, after you trust
 the folder. Read them first: they are short. Run `claude` here once and accept the trust dialog before
-`make try`: until then Claude Code ignores the repo's allow rules. `docs/run-2026-10-07.md` shows what
+`bash harness/try.sh`: until then Claude Code ignores the repo's allow rules. `docs/run-2026-10-07.md` shows what
 five rehearsal runs did.
 
 ## What is in it
@@ -42,8 +42,8 @@ five rehearsal runs did.
 ## Watch it say no
 
 ```bash
-make verify            # GREEN on main
-make try T=01          # Claude on ticket 01, in its own worktree with no holdout/ on disk
+bash harness/verify.sh    # GREEN on main
+bash harness/try.sh 01    # Claude on ticket 01, in its own worktree with no holdout/ on disk
 ```
 
 Claude implements the ticket, the visible tests pass, and it says done. The Stop hook answers with the
@@ -52,15 +52,17 @@ name of an acceptance test it failed, and Claude goes back to work without you t
 ## Add a gate
 
 Pick a rule your team keeps repeating in review. Add one `gate` line to `harness/gates.sh`, then
-`make verify`. Every Claude run from now on meets it.
+`bash harness/verify.sh`. Every Claude run from now on meets it.
 
 ## Run it yourself
 
 ```bash
-make try T=02          # or T=03
-make tmux              # three Claudes on three tickets, plus a pane of verdicts
-make reset             # clean up worktrees, branches and verdicts
+bash harness/try.sh 02    # or 03
+bash harness/tmux.sh      # three Claudes on three tickets, plus a pane of verdicts
+bash harness/reset.sh     # clean up worktrees, branches and verdicts
 ```
+
+The `Makefile` wraps these same scripts (`make try T=02`) if you prefer make; nothing needs it.
 
 Then copy `.claude/` and `harness/` into your own repo and change `gates.sh` to your stack.
 
@@ -71,4 +73,4 @@ Then copy `.claude/` and `harness/` into your own repo and change `gates.sh` to 
 - The hooks and the harness live in the same working tree as Claude. The guard is a denylist and a
   determined agent can get round it. In production the verdict that counts runs in CI, from a commit
   the agent did not write.
-- `make check` tests the harness itself, and runs in CI on every push.
+- `bun test tests && bun test --timeout 30000 ./harness/harness.test.ts` tests the harness itself, and runs in CI on every push.

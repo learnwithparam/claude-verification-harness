@@ -2,7 +2,7 @@
 # Three Claudes on three tickets, and a fourth pane that prints every verdict as it lands.
 set -eu
 cd "$(dirname "$0")/.."
-command -v tmux >/dev/null || { echo "tmux is not installed: run 'make try T=01' in three terminals instead."; exit 1; }
+command -v tmux >/dev/null || { echo "tmux is not installed: run 'bash harness/try.sh 01' (02, 03) in three terminals instead."; exit 1; }
 session=harness
 tmux kill-session -t "$session" 2>/dev/null || true
 log="$(git rev-parse --path-format=absolute --git-common-dir)/harness-verdicts.log"
