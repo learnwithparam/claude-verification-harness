@@ -1,0 +1,20 @@
+# Docs: triage -> build -> pr, with no plan and no agent verify. The repo's gates (a lint or link
+# check) are the proof: red gates at build park the issue, so a broken page never reaches a PR.
+# Route a type to it with routes.<type>.workflow: "docs-to-pr".
+name: docs-to-pr
+limits:
+  questions: 2
+  rejects: 1
+steps:
+  triage:
+    uses: triage
+    label: factory:triaging
+    next: build
+  build:
+    uses: build
+    label: factory:building
+    next: pr
+  pr:
+    uses: pr
+    label: factory:in-review
+    revise: build

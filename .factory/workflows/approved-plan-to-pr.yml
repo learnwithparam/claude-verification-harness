@@ -1,0 +1,32 @@
+# feature-to-pr where a person approves every plan: plan always parks in awaiting-approval, whatever
+# its risk, and nothing is built until someone approves it. For a path or a team that wants the
+# design reviewed before code. Route a type to it with routes.<type>.workflow: "approved-plan-to-pr".
+name: approved-plan-to-pr
+limits:
+  questions: 2
+  rejects: 2
+steps:
+  triage:
+    uses: triage
+    label: factory:triaging
+    next: plan
+  plan:
+    uses: plan
+    label: factory:planning
+    next:
+      - park: awaiting-approval
+        approve: build
+        revise: plan
+  build:
+    uses: build
+    label: factory:building
+    next: verify
+  verify:
+    uses: verify
+    label: factory:verifying
+    next: pr
+    reject: build
+  pr:
+    uses: pr
+    label: factory:in-review
+    revise: build

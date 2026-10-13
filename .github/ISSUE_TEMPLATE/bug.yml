@@ -1,0 +1,27 @@
+name: Bug
+description: Something behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs, a stack trace, or a screenshot, if you have one.
+  - type: markdown
+    attributes:
+      value: |
+        This only sets the `bug` label. Add `factory:ready` once it is
+        triaged and you want the factory to pick it up.

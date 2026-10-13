@@ -13,25 +13,86 @@
       "Read(./holdout/**)",
       "Edit(./tests/**)",
       "Edit(./harness/**)",
-      "Edit(./.claude/**)"
+      "Edit(./.claude/**)",
+      "Bash(gh *)",
+      "Bash(git push*)",
+      "Bash(git merge *)",
+      "Bash(git reset --hard *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.ssh/**)",
+      "Read(./.env*)"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
         "matcher": "Read|Grep|Glob|Bash|Edit|Write|MultiEdit|NotebookEdit",
-        "hooks": [{ "type": "command", "command": "bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.ts\"", "timeout": 10 }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.ts\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-paths.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
-        "hooks": [{ "type": "command", "command": "bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/after-edit.ts\"", "timeout": 60 }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/after-edit.ts\"",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-edit-check.sh",
+            "timeout": 90
+          }
+        ]
       }
     ],
     "Stop": [
       {
-        "hooks": [{ "type": "command", "command": "bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop.ts\"", "timeout": 120 }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop.ts\"",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/stop-artifact.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/stop-verifier-evidence.sh",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }

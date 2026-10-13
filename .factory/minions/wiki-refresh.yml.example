@@ -1,0 +1,12 @@
+# A minion: one agent run with no issue and no PR (docs/events.md).
+# Rename to wiki-refresh.yml to turn it on. `factory minion list` checks it.
+name: wiki-refresh
+description: When a task changes, say which wiki page is now out of date.
+on:
+  event: tasks.task.updated
+prompt: |
+  A task changed. Read the event data and decide which wiki page, if any, it
+  makes out of date. Answer with one JSON object:
+  {"page": "<path or null>", "summary": "<one sentence on what changed>"}.
+emit: wiki.page.updated
+budgetUsd: 0.5

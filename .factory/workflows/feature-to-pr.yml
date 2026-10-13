@@ -1,0 +1,34 @@
+# The factory's default workflow: an issue labelled factory:ready goes triage -> plan -> build ->
+# verify -> pr. Each step names its built-in type (uses), the label it holds while running, and
+# where it goes next. `if:` reads the step's own JSON (plan.risk), toggles and config.
+name: feature-to-pr
+limits:
+  questions: 2 # needs-info rounds before a human takes over
+  rejects: 2 # verify rejections (or red gates before verify) before the factory gives up
+steps:
+  triage:
+    uses: triage
+    label: factory:triaging
+    next: plan
+  plan:
+    uses: plan
+    label: factory:planning
+    next:
+      - if: plan.autoApproveEligible && toggles.autoApproveLowRisk && (plan.risk == 'low' || plan.risk == 'medium' && config.riskPolicy.autoApproveMaxRisk == 'medium')
+        to: build
+      - park: awaiting-approval
+        approve: build
+        revise: plan
+  build:
+    uses: build
+    label: factory:building
+    next: verify
+  verify:
+    uses: verify
+    label: factory:verifying
+    next: pr
+    reject: build
+  pr:
+    uses: pr
+    label: factory:in-review
+    revise: build

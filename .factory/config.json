@@ -1,0 +1,86 @@
+{
+  "repo": "learnwithparam/claude-verification-harness",
+  "base": "factory",
+  "baselineTag": "baseline",
+  "gates": [
+    {
+      "name": "check",
+      "cmd": "make check",
+      "required": true,
+      "role": "test"
+    }
+  ],
+  "agentCommands": {
+    "read": [],
+    "build": [
+      "bun *",
+      "make *"
+    ],
+    "verify": [
+      "bun *",
+      "make *",
+      ".factory/gates.sh"
+    ]
+  },
+  "protectedPaths": [
+    ".agents/**",
+    ".claude/**",
+    ".factory/**",
+    ".github/**",
+    "harness/**",
+    "holdout/**",
+    "tests/**"
+  ],
+  "_postEditCommand": "optional: argv run after each build edit, {file} is the path, e.g. [\"bunx\", \"biome\", \"check\", \"--write\", \"--no-errors-on-unmatched\", \"{file}\"]",
+  "postEditCommand": [],
+  "riskPolicy": {
+    "autoApproveLowRisk": false
+  },
+  "maxOpenFactoryPrs": 3,
+  "concurrency": 3,
+  "pollIntervalSeconds": 15,
+  "tmux": {
+    "enabled": false,
+    "session": "factory"
+  },
+  "prRunSummary": true,
+  "templateOverrides": [],
+  "_workflow": "the steps an issue runs: .factory/workflows/<name>.yml, else the runner's copy of feature-to-pr",
+  "workflow": "feature-to-pr",
+  "_tracker": "where issues live: github, or {\"kind\": \"http\", \"url\": \"https://tasks.example.com\", \"tokenEnv\": \"TRACKER_TOKEN\"} for Tracker API v1",
+  "tracker": {
+    "kind": "github"
+  },
+  "_labels": "optional: the factory's label names to your team's, e.g. {\"factory:ready\": \"ready-for-ai\"}",
+  "labels": {},
+  "agents": {
+    "opus": {
+      "preset": "claude",
+      "model": "claude-opus-5-5"
+    },
+    "sonnet": {
+      "preset": "claude",
+      "model": "claude-sonnet-5-5"
+    },
+    "haiku": {
+      "preset": "claude",
+      "model": "claude-haiku-4-5-20251001"
+    }
+  },
+  "stages": {
+    "triage": "haiku",
+    "plan": "opus",
+    "build": "sonnet",
+    "verify": "sonnet",
+    "pr": "haiku",
+    "retro": "haiku"
+  },
+  "routes": {
+    "docs": {
+      "stages": {
+        "build": "haiku"
+      }
+    }
+  },
+  "setup": []
+}

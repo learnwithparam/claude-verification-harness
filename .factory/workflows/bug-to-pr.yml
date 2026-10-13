@@ -1,0 +1,25 @@
+# A bug: triage -> build -> verify -> pr, with no plan step. Build writes a failing test first and
+# verify proves it catches the bug, so a fix that verify rejects goes back to build, never to a PR.
+# Route a type to it with routes.<type>.workflow: "bug-to-pr".
+name: bug-to-pr
+limits:
+  questions: 2
+  rejects: 2
+steps:
+  triage:
+    uses: triage
+    label: factory:triaging
+    next: build
+  build:
+    uses: build
+    label: factory:building
+    next: verify
+  verify:
+    uses: verify
+    label: factory:verifying
+    next: pr
+    reject: build
+  pr:
+    uses: pr
+    label: factory:in-review
+    revise: build
