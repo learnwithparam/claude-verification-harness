@@ -1,6 +1,6 @@
 {
   "repo": "learnwithparam/claude-verification-harness",
-  "base": "factory",
+  "base": "factory-run",
   "baselineTag": "baseline",
   "gates": [
     {
